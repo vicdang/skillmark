@@ -54,9 +54,18 @@ docker-compose up --build
 
 ## Implementation Phases
 See `spec/SKILLMARK_PROJECT_SPEC.md` Section 16 for the full phase plan.
-Current: Phase 1 complete — foundation, auth, layout, profile, projects, matching, allocations, wish list, dashboard, notifications, settings.
+Current: Phase 1 complete — foundation, auth, layout, profile, projects, matching, allocations, wish list, dashboard, notifications, settings, team management.
 Released as `v0.1.0`.
 Next: Phase 2 — Skill Matrix CRUD (employee self-service skill levels, gap analysis).
+
+## Recent Fixes & Improvements (v0.1.0)
+- **Auth bootstrap**: Fixed blank page after login by improving state management in `useAuth` hook and showing loading indicator in `AuthGuard`
+- **i18n locales**: Added en-US and vi-VN locale directories to support browser-detected locale codes
+- **Employee visibility**: Changed `/users` endpoint auth from `require_admin` to `require_employee_or_above` so employees can view the directory
+- **Wishlist feature**: Fixed database column mapping (employee_id → user_id, notes → note) across frontend hooks and pages
+- **AI explanations**: Added error handling and API key validation in matching engine
+- **Wishlist UI**: Fixed star button state tracking by ensuring frontend field names match backend response schema
+- **Team Management**: Added admin UI for granting/changing user roles (admin, manager, employee, guest, viewer)
 
 ## Known Issues / Gotchas
 - PostgREST FK joins: `allocations` and `wish_list` both have two FKs to `users`. Always use explicit hints: `users!allocations_user_id_fkey` and `users!wish_list_user_id_fkey`.

@@ -145,6 +145,7 @@
     "emailTemplates": "Email Templates",
     "notifPrefs": "Notification Prefs",
     "notificationPrefs": "Notification Preferences",
+    "teamManagement": "Team Management",
     "matchingWeights": "Matching Weights",
     "totalWeight": "Total",
     "weightMustEqual": "must equal 100%",

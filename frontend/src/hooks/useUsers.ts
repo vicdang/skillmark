@@ -1,42 +1,37 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { api } from '@/lib/api'
-import type { User } from '@/types'
+
+export interface UserProfile {
+  id: string
+  email: string
+  full_name: string
+  role: 'admin' | 'manager' | 'employee' | 'guest' | 'viewer'
+  avatar_url?: string
+  is_active: boolean
+  created_at?: string
+}
 
 export function useUsers() {
-  const [users, setUsers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [users, setUsers] = useState<UserProfile[]>([])
+  const [loading, setLoading] = useState(false)
 
-  const fetch = useCallback(async () => {
+  const fetch = async () => {
     setLoading(true)
-    setError('')
     try {
-      const res = await api.get<User[]>('/users')
-      setUsers(res.data)
-    } catch {
-      setError('Failed to load users')
+      const res = await api.get<UserProfile[]>('/users')
+      setUsers(res.data || [])
     } finally {
       setLoading(false)
     }
-  }, [])
+  }
 
-  useEffect(() => { fetch() }, [fetch])
+  const updateRole = async (userId: string, role: string) => {
+    const res = await api.put<UserProfile>(`/users/${userId}`, { role })
+    setUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, role: res.data.role } : u))
+    )
+    return res.data
+  }
 
-  return { users, loading, error, refetch: fetch }
-}
-
-export function useUser(userId: string | undefined) {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (!userId) return
-    setLoading(true)
-    api.get<User>(`/users/${userId}`)
-      .then((r) => setUser(r.data))
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false))
-  }, [userId])
-
-  return { user, loading }
+  return { users, loading, fetch, updateRole }
 }

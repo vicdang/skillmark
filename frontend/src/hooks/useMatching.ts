@@ -32,11 +32,14 @@ export interface MatchResult {
 export interface WishListEntry {
   id: string
   project_id: string
-  employee_id: string
+  user_id: string
+  added_by: string
   match_score?: number
   ai_explanation?: string
-  notes?: string
+  note?: string
+  created_at?: string
   users?: {
+    id: string
     full_name: string
     email: string
     avatar_url?: string
@@ -106,7 +109,7 @@ export function useWishList(projectId: string) {
 
   const remove = async (employeeId: string) => {
     await api.delete(`/projects/${projectId}/wishlist/${employeeId}`)
-    setWishList((prev) => prev.filter((w) => w.employee_id !== employeeId))
+    setWishList((prev) => prev.filter((w) => w.user_id !== employeeId))
   }
 
   return { wishList, loading, fetch, add, remove }

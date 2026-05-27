@@ -31,7 +31,7 @@ export function QueryResources() {
   }, [])
 
   useEffect(() => {
-    setWishListSet(new Set(wishList.map((w) => w.employee_id)))
+    setWishListSet(new Set(wishList.map((w) => w.user_id)))
   }, [wishList])
 
   const filtered = results.filter((r) => r.score >= minScore)

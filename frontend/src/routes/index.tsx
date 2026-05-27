@@ -45,6 +45,7 @@ export const router = createBrowserRouter([
           { path: 'skills', element: Lazy(() => import('@/pages/Settings/SkillTaxonomy'), 'SkillTaxonomy') },
           { path: 'ai', element: Lazy(() => import('@/pages/Settings/AiConfig'), 'AiConfig') },
           { path: 'notifications', element: Lazy(() => import('@/pages/Settings/NotificationPrefs'), 'NotificationPrefs') },
+          { path: 'team', element: Lazy(() => import('@/pages/Settings/TeamManagement'), 'TeamManagement') },
           { path: 'license', element: Lazy(() => import('@/pages/Settings/LicenseInfo'), 'LicenseInfo') },
         ],
       },

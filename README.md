@@ -8,6 +8,7 @@ Skill matrix management platform with AI-powered RFP analysis and resource match
 - **Resource Matching** — Upload an RFP → AI extracts requirements → ranked candidate list with match scores
 - **Allocation Tracking** — Assign employees to projects by month/percentage; employees confirm or reject
 - **Wish List** — Shortlist candidates per project before finalising allocations
+- **Team Management** — Admins assign roles (admin, manager, employee, guest, viewer) to users
 - **Dashboard & Analytics** — Skill coverage, availability, and gap analysis charts
 - **Notifications** — Real-time in-app alerts via Supabase Realtime
 
@@ -120,5 +121,6 @@ Key endpoints:
 | GET | `/projects/:id/wishlist` | Get shortlisted candidates |
 | POST | `/allocations` | Allocate employee to project |
 | GET | `/users` | Employee directory |
+| PUT | `/users/:id` | Update user (admin-only for role changes) |
 | GET | `/skills` | Skill catalog |
 | GET | `/dashboard/stats` | Dashboard metrics |

@@ -206,7 +206,7 @@ export function ProjectDetail() {
                       <AvatarFallback className="text-xs">{getInitials(w.users?.full_name ?? '?')}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm">{w.users?.full_name ?? w.employee_id}</p>
+                      <p className="font-medium text-sm">{w.users?.full_name ?? w.user_id}</p>
                       {w.users?.job_title && <p className="text-xs text-muted-foreground">{w.users.job_title}</p>}
                       {w.ai_explanation && <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{w.ai_explanation}</p>}
                     </div>
@@ -215,7 +215,7 @@ export function ProjectDetail() {
                     )}
                     {canManage && (
                       <button
-                        onClick={() => removeWL(w.employee_id)}
+                        onClick={() => removeWL(w.user_id)}
                         className="text-muted-foreground hover:text-destructive"
                         title="Remove from wish list"
                       >

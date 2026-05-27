@@ -5,6 +5,9 @@ from app.db.client import get_db
 from app.services.matching_engine import run_matching, ai_explain_match
 from pydantic import BaseModel
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["matching"])
 
@@ -61,7 +64,7 @@ async def get_wishlist(project_id: uuid.UUID, _: UserOut = Depends(require_manag
     db = get_db()
     result = (
         db.table("wish_list")
-        .select("*, users!wish_list_user_id_fkey(*)")
+        .select("*, users!wish_list_user_id_fkey(id, full_name, email, avatar_url, job_title)")
         .eq("project_id", str(project_id))
         .execute()
     )
@@ -80,7 +83,7 @@ async def add_to_wishlist(
             db.table("wish_list")
             .select("id")
             .eq("project_id", str(project_id))
-            .eq("employee_id", str(payload.employee_id))
+            .eq("user_id", str(payload.employee_id))
             .execute()
         )
         if existing.data:
@@ -88,11 +91,11 @@ async def add_to_wishlist(
 
         db.table("wish_list").insert({
             "project_id": str(project_id),
-            "employee_id": str(payload.employee_id),
+            "user_id": str(payload.employee_id),
             "added_by": str(current_user.id),
             "match_score": payload.score,
             "ai_explanation": payload.explanation,
-            "notes": payload.notes,
+            "note": payload.notes,
         }).execute()
 
         proj_r = db.table("projects").select("title").eq("id", str(project_id)).single().execute()
@@ -107,6 +110,7 @@ async def add_to_wishlist(
 
         return {"status": "added"}
     except Exception as e:
+        logger.error(f"Wishlist error: {type(e).__name__}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
@@ -117,7 +121,7 @@ async def remove_from_wishlist(
     _: UserOut = Depends(require_manager_or_above),
 ):
     db = get_db()
-    db.table("wish_list").delete().eq("project_id", str(project_id)).eq("employee_id", str(employee_id)).execute()
+    db.table("wish_list").delete().eq("project_id", str(project_id)).eq("user_id", str(employee_id)).execute()
 
 
 # ──────────────────── allocations ────────────────────

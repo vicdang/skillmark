@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Cpu, Bell, Layers, KeyRound } from 'lucide-react'
+import { Cpu, Bell, Layers, KeyRound, Users } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 
 const NAV_BASE = [
@@ -9,6 +9,7 @@ const NAV_BASE = [
   { to: '/settings/notifications', labelKey: 'settings.notifPrefs', icon: <Bell size={14} /> },
 ]
 const NAV_ADMIN = [
+  { to: '/settings/team', labelKey: 'settings.teamManagement', icon: <Users size={14} /> },
   { to: '/settings/license', labelKey: 'settings.license', icon: <KeyRound size={14} /> },
 ]
 
