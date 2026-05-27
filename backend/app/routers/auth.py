@@ -3,18 +3,16 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.dependencies import get_current_user
 from app.models.user import UserOut
 from app.db.client import get_db
+import logging
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
 bearer = HTTPBearer()
 
 
 @router.get("/me", response_model=UserOut)
 async def me(current_user: UserOut = Depends(get_current_user)):
-    if current_user.is_active is False:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Your account has been deactivated. Please contact an administrator for more information."
-        )
+    logger.info(f"[/auth/me] User authenticated: {current_user.email}")
     return current_user
 
 
