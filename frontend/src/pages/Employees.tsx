@@ -10,6 +10,7 @@ const ROLE_COLORS: Record<Role, { bg: string; text: string }> = {
   admin:    { bg: '#3b82f615', text: '#60a5fa' },
   manager:  { bg: '#818cf815', text: '#a78bfa' },
   employee: { bg: '#10b98115', text: '#34d399' },
+  guest:    { bg: '#f3f4f615', text: '#9ca3af' },
   viewer:   { bg: '#1a2538',   text: '#6b7280' },
 }
 

@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useTranslation } from 'react-i18next'
 import { useUsers } from '@/hooks/useUsers'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -15,16 +14,7 @@ const ROLE_LABELS: Record<string, string> = {
   viewer: 'Viewer',
 }
 
-const ROLE_COLORS: Record<string, string> = {
-  admin: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-  manager: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-  employee: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-  guest: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
-  viewer: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
-}
-
 export function TeamManagement() {
-  const { t } = useTranslation()
   const { users, loading, fetch, updateRole } = useUsers()
   const [updating, setUpdating] = useState<string | null>(null)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
