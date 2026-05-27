@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from app.dependencies import get_current_user, require_admin
+from app.dependencies import get_current_user, require_admin, require_employee_or_above
 from app.models.user import UserOut, UserUpdate
 from app.db.client import get_db
 import uuid
@@ -8,7 +8,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.get("", response_model=list[UserOut])
-async def list_users(_: UserOut = Depends(require_admin)):
+async def list_users(_: UserOut = Depends(require_employee_or_above)):
     db = get_db()
     result = db.table("users").select("*").eq("is_active", True).execute()
     return [UserOut(**u) for u in result.data]
