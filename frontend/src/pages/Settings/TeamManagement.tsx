@@ -33,15 +33,9 @@ export function TeamManagement() {
       await updateRole(userId, newRole)
       setOpenDropdown(null)
 
-      // If user changed their own role, refresh auth state
-      if (userId === currentUser?.id) {
-        try {
-          const { data } = await api.get<User>('/auth/me')
-          useAuthStore.setState({ user: data })
-        } catch {
-          // If refresh fails, reload page
-          window.location.reload()
-        }
+      // If user changed their own role, update local state
+      if (userId === currentUser?.id && currentUser) {
+        useAuthStore.setState({ user: { ...currentUser, role: newRole as any } })
       }
     } finally {
       setUpdating(null)
