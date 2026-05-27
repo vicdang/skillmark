@@ -1,0 +1,13 @@
+backend/
+spec/
+.env
+.env.local
+.git
+.gitignore
+*.md
+docker-compose.yml
+.venv
+__pycache__
+*.pyc
+node_modules/
+.vercel/
