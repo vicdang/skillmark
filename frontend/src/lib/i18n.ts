@@ -16,12 +16,15 @@ i18n
     detection: {
       order: ['localStorage', 'navigator'],
       caches: ['localStorage'],
+      lookupLocalStorage: 'i18nextLng',
+      lookupFromSubdomainIndex: 0,
     },
     interpolation: {
       escapeValue: false,
     },
     supportedLngs: ['en', 'vi'],
     nonExplicitSupportedLngs: true,
+    load: 'languageOnly',
   });
 
 export default i18n;
