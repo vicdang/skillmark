@@ -3,6 +3,8 @@ import { initReactI18next } from 'react-i18next';
 import HttpApi from 'i18next-http-backend';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
+const version = Date.now()
+
 i18n
   .use(HttpApi)
   .use(LanguageDetector)
@@ -13,7 +15,8 @@ i18n
     ns: ['translation'],
     debug: false,
     backend: {
-      loadPath: '/locales/{{lng}}/{{ns}}.json',
+      loadPath: `/locales/{{lng}}/{{ns}}.json?v=${version}`,
+      addPath: `/locales/add/{{lng}}/{{ns}}`,
     },
     detection: {
       order: ['localStorage', 'navigator'],
@@ -21,6 +24,9 @@ i18n
     },
     interpolation: {
       escapeValue: false,
+    },
+    react: {
+      useSuspense: false,
     },
   });
 
