@@ -1,0 +1,234 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ── TailwindCSS v4 theme tokens (maps shadcn utility classes) ── */
+@theme inline {
+  --color-background:        #080e19;
+  --color-foreground:        #e2e8f0;
+  --color-card:              #111b2e;
+  --color-card-foreground:   #e2e8f0;
+  --color-popover:           #0f1929;
+  --color-popover-foreground:#e2e8f0;
+  --color-primary:           #3b82f6;
+  --color-primary-foreground:#ffffff;
+  --color-secondary:         #1a2538;
+  --color-secondary-foreground: #94a3b8;
+  --color-muted:             #0c1322;
+  --color-muted-foreground:  #94a3b8;
+  --color-accent:            #1a2538;
+  --color-accent-foreground: #e2e8f0;
+  --color-destructive:       #ef4444;
+  --color-destructive-foreground: #e2e8f0;
+  --color-border:            #1a2538;
+  --color-input:             #0c1322;
+  --color-ring:              #3b82f6;
+  --radius:                  0.5rem;
+}
+
+/* ── Design System Tokens ─────────────────────────────────── */
+:root {
+  /* Backgrounds */
+  --bg-page:    #080e19;
+  --bg-card:    #111b2e;
+  --bg-inner:   #0c1322;
+  --bg-input:   #0c1322;
+
+  /* Borders */
+  --border-default: #1a2538;
+  --border-subtle:  #152035;
+  --border-hover:   #2a3444;
+
+  /* Text */
+  --text-primary:   #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted:     #8892a4;
+  --text-dim:       #6b7280;
+  --text-faint:     #4b5563;
+  --text-disabled:  #374151;
+
+  /* Accents */
+  --blue:   #3b82f6;
+  --green:  #10b981;
+  --yellow: #f59e0b;
+  --red:    #ef4444;
+  --purple: #8b5cf6;
+  --cyan:   #06b6d4;
+
+  /* shadcn compat — mapped to design system */
+  --background:         221 52% 7%;
+  --foreground:         214 32% 91%;
+  --card:               221 47% 13%;
+  --card-foreground:    214 32% 91%;
+  --popover:            221 52% 10%;
+  --popover-foreground: 214 32% 91%;
+  --primary:            217 91% 60%;
+  --primary-foreground: 221 47% 11%;
+  --secondary:          217 33% 17%;
+  --secondary-foreground: 214 32% 91%;
+  --muted:              221 40% 14%;
+  --muted-foreground:   215 20% 55%;
+  --accent:             217 33% 17%;
+  --accent-foreground:  214 32% 91%;
+  --destructive:        0 63% 45%;
+  --destructive-foreground: 214 32% 91%;
+  --border:             220 33% 20%;
+  --input:              220 33% 14%;
+  --ring:               217 91% 60%;
+  --radius:             0.5rem;
+  --sidebar-width:      224px;
+}
+
+/* Force dark — no light mode */
+html { color-scheme: dark; }
+
+* { border-color: var(--border-default); box-sizing: border-box; }
+
+body {
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Mono for numbers/data */
+.mono { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+
+/* ── Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-inner); }
+::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+/* ── shadcn/Tailwind compat overrides ──────────────────────── */
+.bg-background  { background-color: var(--bg-page) !important; }
+.bg-card        { background-color: var(--bg-card) !important; }
+.border-border  { border-color: var(--border-default) !important; }
+.text-foreground { color: var(--text-primary) !important; }
+.text-muted-foreground { color: var(--text-secondary) !important; }
+.bg-muted       { background-color: var(--bg-inner) !important; }
+.bg-muted\/50   { background-color: #0c132280 !important; }
+.bg-muted\/30   { background-color: #0c132250 !important; }
+.bg-muted\/40   { background-color: #0c132266 !important; }
+.divide-border > * + * { border-top-color: var(--border-default) !important; }
+.bg-accent      { background-color: #1a2538 !important; }
+.hover\:bg-accent:hover { background-color: #1a2538 !important; }
+.text-accent-foreground { color: var(--text-primary) !important; }
+.bg-primary\/10 { background-color: #3b82f618 !important; }
+.text-primary   { color: var(--blue) !important; }
+.border-input   { border-color: var(--border-default) !important; }
+.bg-popover     { background-color: #0f1929 !important; }
+.text-popover-foreground { color: var(--text-primary) !important; }
+.ring-offset-background { --tw-ring-offset-color: var(--bg-page); }
+.border-dashed  { border-style: dashed; }
+
+/* ── Button shadcn dark variants ──────────────────────────── */
+.bg-secondary   { background-color: #1a2538 !important; }
+.text-secondary-foreground { color: var(--text-secondary) !important; }
+.bg-destructive { background-color: #ef444420 !important; }
+.text-destructive { color: #ef4444 !important; }
+.hover\:text-destructive:hover { color: #ef4444 !important; }
+.bg-primary     { background-color: var(--blue) !important; }
+.text-primary-foreground { color: #fff !important; }
+.hover\:bg-primary\/90:hover { background-color: #2563eb !important; }
+
+/* ── Card base ─────────────────────────────────────────────── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+}
+
+/* ── Input overrides ───────────────────────────────────────── */
+input, textarea, select {
+  background-color: var(--bg-input) !important;
+  border-color: var(--border-default) !important;
+  color: var(--text-primary) !important;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--blue) !important;
+  outline: none;
+  box-shadow: 0 0 0 2px #3b82f620;
+}
+input::placeholder, textarea::placeholder { color: var(--text-faint) !important; }
+
+/* ── Button overrides ──────────────────────────────────────── */
+button { transition: all 0.15s ease; }
+
+/* ── Table ─────────────────────────────────────────────────── */
+thead th { color: var(--text-dim) !important; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+tbody tr { border-bottom: 1px solid #0f1724; transition: background 0.1s; }
+tbody tr:hover { background: #3b82f606; }
+
+/* ── Recharts dark theme ──────────────────────────────────── */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: #111b2e !important;
+  border: 1px solid #1a2538 !important;
+  border-radius: 8px !important;
+  color: #e2e8f0 !important;
+  font-size: 12px !important;
+}
+.recharts-tooltip-label { color: #94a3b8 !important; }
+.recharts-tooltip-item { color: #e2e8f0 !important; }
+.recharts-cartesian-grid line { stroke: #1a2538 !important; }
+.recharts-xAxis .recharts-cartesian-axis-tick-value,
+.recharts-yAxis .recharts-cartesian-axis-tick-value { fill: #6b7280 !important; }
+.recharts-legend-item-text { color: #94a3b8 !important; }
+.recharts-pie-label-text { fill: #94a3b8 !important; font-size: 11px !important; }
+
+/* ── Radix Select dropdown ────────────────────────────────── */
+[data-radix-popper-content-wrapper] [role="listbox"],
+[data-radix-popper-content-wrapper] [role="option"] {
+  background-color: #0f1929 !important;
+  color: var(--text-primary) !important;
+}
+[data-radix-popper-content-wrapper] [role="option"]:focus,
+[data-radix-popper-content-wrapper] [role="option"][data-highlighted] {
+  background-color: #1a2538 !important;
+  color: var(--text-primary) !important;
+}
+
+/* ── Avatar ───────────────────────────────────────────────── */
+.avatar-fallback, [class*="AvatarFallback"] {
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important;
+  color: #fff !important;
+}
+
+/* ── Spacing helpers ──────────────────────────────────────── */
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+.space-y-3 > * + * { margin-top: 0.75rem; }
+.space-y-2 > * + * { margin-top: 0.5rem; }
+.space-y-1 > * + * { margin-top: 0.25rem; }
+
+/* ── Tabs (Radix) dark override ───────────────────────────── */
+[role="tablist"] {
+  background: #080e19 !important;
+  border-radius: 7px !important;
+  padding: 3px !important;
+  border: 1px solid #1a2538 !important;
+}
+[role="tab"] {
+  border-radius: 5px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: #4b5563 !important;
+  transition: all 0.15s !important;
+}
+[role="tab"][data-state="active"] {
+  background: #111b2e !important;
+  color: #60a5fa !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3) !important;
+}
+
+/* ── Checkbox/input accent ────────────────────────────────── */
+input[type="checkbox"] { accent-color: #3b82f6; }
+input[type="range"] { accent-color: #3b82f6; }
+
+/* ── Link overrides ────────────────────────────────────────── */
+a { color: inherit; }
+a:hover { color: #60a5fa; }

@@ -1,0 +1,20 @@
+fastapi>=0.115.5
+uvicorn[standard]>=0.32.1
+pydantic[email]>=2.10.3
+pydantic-settings>=2.6.1
+# supabase 2.26+ pulls in storage3 2.26+ which requires pyiceberg (needs MSVC on Windows)
+supabase>=2.10.0,<2.26.0
+python-jose[cryptography]>=3.3.0
+python-multipart>=0.0.12
+httpx>=0.26.0
+anthropic>=0.40.0
+google-generativeai>=0.8.3
+pymupdf>=1.24.14
+python-docx>=1.1.2
+lxml>=5.0.0
+reportlab>=4.2.5
+openpyxl>=3.1.5
+resend>=2.5.1
+python-dotenv>=1.0.1
+celery>=5.4.0
+redis>=5.2.1
