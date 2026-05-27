@@ -13,7 +13,7 @@ i18n
     fallbackLng: 'en',
     defaultNS: 'translation',
     ns: ['translation'],
-    debug: false,
+    debug: true,
     backend: {
       loadPath: `/locales/{{lng}}/{{ns}}.json?v=${version}`,
       addPath: `/locales/add/{{lng}}/{{ns}}`,
@@ -28,6 +28,9 @@ i18n
     react: {
       useSuspense: false,
     },
+  }, (err, t) => {
+    if (err) console.error('i18n init error:', err)
+    else console.log('i18n initialized successfully')
   });
 
 export default i18n;

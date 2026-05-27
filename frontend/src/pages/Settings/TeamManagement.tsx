@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useUsers } from '@/hooks/useUsers'
+import { useAuthStore } from '@/stores/authStore'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { getInitials } from '@/lib/utils'
@@ -16,6 +17,7 @@ const ROLE_LABELS: Record<string, string> = {
 
 export function TeamManagement() {
   const { users, loading, fetch, updateRole } = useUsers()
+  const currentUser = useAuthStore((s) => s.user)
   const [updating, setUpdating] = useState<string | null>(null)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
 
@@ -28,6 +30,13 @@ export function TeamManagement() {
     try {
       await updateRole(userId, newRole)
       setOpenDropdown(null)
+
+      // If user changed their own role, reload to refresh auth token
+      if (userId === currentUser?.id) {
+        setTimeout(() => {
+          window.location.reload()
+        }, 500)
+      }
     } finally {
       setUpdating(null)
     }
