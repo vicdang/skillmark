@@ -54,7 +54,11 @@ export function useAuth() {
         try {
           const { data } = await api.get<User>('/auth/me')
           return data
-        } catch {
+        } catch (e: any) {
+          // 401 = invalid/expired token, don't retry
+          if (e.response?.status === 401) {
+            return null
+          }
           if (i < retries - 1) await new Promise((r) => setTimeout(r, 800))
         }
       }
@@ -62,7 +66,11 @@ export function useAuth() {
         await api.post('/auth/upsert-profile')
         const { data } = await api.get<User>('/auth/me')
         return data
-      } catch {
+      } catch (e: any) {
+        // 401 = invalid/expired token
+        if (e.response?.status === 401) {
+          return null
+        }
         return null
       }
     }
@@ -76,39 +84,31 @@ export function useAuth() {
 
     // Primary bootstrap: check existing session immediately
     const bootstrap = async () => {
-      // If user is already in store (from localStorage), mark as bootstrapped immediately
+      markBootstrapped()
+
+      // If user is already in store (from localStorage), use it
       if (user) {
-        markBootstrapped()
-        // Still validate and refresh user data in background
-        try {
-          const profile = await resolveProfile()
-          if (profile) {
-            setUser(profile)
-            await loadNotifications()
-            subscribeRealtime(profile.id)
-          }
-        } catch (e) {
-          console.error('[useAuth] background profile refresh error', e)
-        }
+        subscribeRealtime(user.id)
+        // Defer notifications loading to avoid auth issues
+        setTimeout(() => {
+          loadNotifications().catch(e => console.debug('[useAuth] notifications load error', e))
+        }, 100)
         return
       }
 
+      // No user in store, check Supabase session
       try {
         const { data } = await supabase.auth.getSession()
         if (data.session) {
           const profile = await resolveProfile()
           if (profile) {
             setUser(profile)
-            await loadNotifications()
             subscribeRealtime(profile.id)
-          } else {
-            setUser(null)
+            await loadNotifications()
           }
         }
       } catch (e) {
         console.error('[useAuth] bootstrap error', e)
-      } finally {
-        markBootstrapped()
       }
     }
 
@@ -145,5 +145,5 @@ export function useAuth() {
         realtimeRef.current = null
       }
     }
-  }, [setUser, setBootstrapped, setNotifications, addNotification])
+  }, [])
 }

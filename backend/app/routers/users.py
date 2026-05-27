@@ -33,6 +33,8 @@ async def update_user(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot edit other users")
     if payload.role and current_user.role != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admins can change roles")
+    if payload.is_active is not None and current_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only admins can change user status")
 
     db = get_db()
     updates = payload.model_dump(exclude_none=True)

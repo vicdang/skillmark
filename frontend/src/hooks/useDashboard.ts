@@ -52,23 +52,33 @@ export function useDashboard() {
     const load = async () => {
       setLoading(true)
       try {
-        const [ov, wf, sd, sg, tr, av, pred] = await Promise.allSettled([
-          api.get<Overview>('/dashboard/overview'),
+        // Load fast endpoints first (overview)
+        try {
+          const ov = await api.get<Overview>('/dashboard/overview')
+          setOverview(ov.data)
+        } catch (e) {
+          console.error('[Dashboard] overview error:', e)
+        }
+        setLoading(false)
+
+        // Load detailed charts in parallel in background
+        Promise.allSettled([
           api.get<WorkforceData>('/dashboard/workforce'),
           api.get<SkillDistribution>('/dashboard/skill-distribution'),
           api.get<{ gaps: SkillGap[] }>('/dashboard/skill-gaps'),
           api.get<{ series: TrendSeries[] }>('/dashboard/trends'),
           api.get<{ buckets: AvailabilityBucket[] }>('/dashboard/availability-overview'),
           api.get<{ predictions: string[] }>('/dashboard/predictions'),
-        ])
-        if (ov.status === 'fulfilled') setOverview(ov.value.data)
-        if (wf.status === 'fulfilled') setWorkforce(wf.value.data)
-        if (sd.status === 'fulfilled') setSkillDist(sd.value.data)
-        if (sg.status === 'fulfilled') setSkillGaps(sg.value.data.gaps)
-        if (tr.status === 'fulfilled') setTrends(tr.value.data.series)
-        if (av.status === 'fulfilled') setAvailability(av.value.data.buckets)
-        if (pred.status === 'fulfilled') setPredictions(pred.value.data.predictions)
-      } finally {
+        ]).then(([wf, sd, sg, tr, av, pred]) => {
+          if (wf.status === 'fulfilled') setWorkforce(wf.value.data)
+          if (sd.status === 'fulfilled') setSkillDist(sd.value.data)
+          if (sg.status === 'fulfilled') setSkillGaps(sg.value.data.gaps)
+          if (tr.status === 'fulfilled') setTrends(tr.value.data.series)
+          if (av.status === 'fulfilled') setAvailability(av.value.data.buckets)
+          if (pred.status === 'fulfilled') setPredictions(pred.value.data.predictions)
+        })
+      } catch (e) {
+        console.error('[Dashboard] load error:', e)
         setLoading(false)
       }
     }

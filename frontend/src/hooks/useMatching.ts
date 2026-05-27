@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { api } from '@/lib/api'
 
 export interface SkillDetail {
@@ -87,7 +87,7 @@ export function useWishList(projectId: string) {
   const [wishList, setWishList] = useState<WishListEntry[]>([])
   const [loading, setLoading] = useState(false)
 
-  const fetch = async () => {
+  const fetch = useCallback(async () => {
     setLoading(true)
     try {
       const res = await api.get<WishListEntry[]>(`/projects/${projectId}/wishlist`)
@@ -95,22 +95,45 @@ export function useWishList(projectId: string) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [projectId])
 
-  const add = async (employeeId: string, score?: number, explanation?: string, notes?: string) => {
-    await api.post(`/projects/${projectId}/wishlist`, {
-      employee_id: employeeId,
-      score,
-      explanation,
-      notes,
-    })
-    await fetch()
-  }
+  const add = useCallback(async (employeeId: string, score?: number, explanation?: string, notes?: string) => {
+    const optimisticEntry: WishListEntry = {
+      id: `temp-${Date.now()}`,
+      project_id: projectId,
+      user_id: employeeId,
+      added_by: '',
+      match_score: score,
+      ai_explanation: explanation,
+      note: notes,
+    }
+    setWishList((prev) => [optimisticEntry, ...prev])
 
-  const remove = async (employeeId: string) => {
+    try {
+      const res = await api.post<WishListEntry>(`/projects/${projectId}/wishlist`, {
+        employee_id: employeeId,
+        score,
+        explanation,
+        notes,
+      })
+      if (res.data) {
+        const data: WishListEntry = {
+          ...res.data,
+          user_id: res.data.user_id || employeeId,
+        }
+        setWishList((prev) => prev.map((w) => w.id === optimisticEntry.id ? data : w))
+      }
+    } catch (e) {
+      setWishList((prev) => prev.filter((w) => w.id !== optimisticEntry.id))
+      console.error('[useWishList] add error:', e)
+      throw e
+    }
+  }, [projectId])
+
+  const remove = useCallback(async (employeeId: string) => {
     await api.delete(`/projects/${projectId}/wishlist/${employeeId}`)
     setWishList((prev) => prev.filter((w) => w.user_id !== employeeId))
-  }
+  }, [projectId])
 
   return { wishList, loading, fetch, add, remove }
 }

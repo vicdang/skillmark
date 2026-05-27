@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Search, ChevronRight } from 'lucide-react'
@@ -40,10 +40,14 @@ const selectStyle: React.CSSProperties = {
 
 export function Employees() {
   const { t } = useTranslation()
-  const { users, loading } = useUsers()
+  const { users, loading, fetch } = useUsers()
 
   const [query, setQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<Role | 'all'>('all')
+
+  useEffect(() => {
+    fetch()
+  }, [fetch])
 
   const filtered = users.filter((u) => {
     const matchesQuery =

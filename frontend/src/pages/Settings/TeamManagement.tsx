@@ -16,10 +16,11 @@ const ROLE_LABELS: Record<string, string> = {
 }
 
 export function TeamManagement() {
-  const { users, loading, fetch, updateRole } = useUsers()
+  const { users, loading, fetch, updateRole, toggleActive } = useUsers()
   const currentUser = useAuthStore((s) => s.user)
   const [updating, setUpdating] = useState<string | null>(null)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const [togglingStatus, setTogglingStatus] = useState<string | null>(null)
 
   useEffect(() => {
     fetch()
@@ -37,6 +38,15 @@ export function TeamManagement() {
       }
     } finally {
       setUpdating(null)
+    }
+  }
+
+  const handleToggleStatus = async (userId: string, currentStatus: boolean) => {
+    setTogglingStatus(userId)
+    try {
+      await toggleActive(userId, !currentStatus)
+    } finally {
+      setTogglingStatus(null)
     }
   }
 
@@ -116,12 +126,25 @@ export function TeamManagement() {
                   </div>
                 </td>
                 <td className="px-4 py-3">
-                  <Badge
-                    variant={user.is_active ? 'success' : 'secondary'}
-                    className="capitalize text-xs"
+                  <button
+                    onClick={() => handleToggleStatus(user.id, user.is_active)}
+                    disabled={togglingStatus === user.id}
+                    className="cursor-pointer"
                   >
-                    {user.is_active ? 'Active' : 'Inactive'}
-                  </Badge>
+                    <Badge
+                      variant={user.is_active ? 'success' : 'secondary'}
+                      className="capitalize text-xs hover:opacity-80 disabled:opacity-50"
+                    >
+                      {togglingStatus === user.id ? (
+                        <>
+                          <Loader2 size={12} className="animate-spin inline mr-1" />
+                          {user.is_active ? 'Active' : 'Inactive'}
+                        </>
+                      ) : (
+                        <>{user.is_active ? 'Active' : 'Inactive'}</>
+                      )}
+                    </Badge>
+                  </button>
                 </td>
               </tr>
             ))}

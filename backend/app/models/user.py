@@ -30,6 +30,7 @@ class UserUpdate(BaseModel):
     bio: str | None = None
     avatar_url: str | None = None
     role: Role | None = None
+    is_active: bool | None = None
 
 
 class UserOut(UserBase):

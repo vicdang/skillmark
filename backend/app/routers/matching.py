@@ -89,7 +89,7 @@ async def add_to_wishlist(
         if existing.data:
             return {"status": "already_added"}
 
-        db.table("wish_list").insert({
+        result = db.table("wish_list").insert({
             "project_id": str(project_id),
             "user_id": str(payload.employee_id),
             "added_by": str(current_user.id),
@@ -108,7 +108,7 @@ async def add_to_wishlist(
             "link": f"/projects/{project_id}",
         }).execute()
 
-        return {"status": "added"}
+        return result.data[0] if result.data else {"status": "added"}
     except Exception as e:
         logger.error(f"Wishlist error: {type(e).__name__}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

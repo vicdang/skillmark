@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
 
 export interface UserProfile {
@@ -38,7 +38,7 @@ export function useUsers() {
   const [users, setUsers] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(false)
 
-  const fetch = async () => {
+  const fetch = useCallback(async () => {
     setLoading(true)
     try {
       const res = await api.get<UserProfile[]>('/users')
@@ -46,15 +46,23 @@ export function useUsers() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const updateRole = async (userId: string, role: string) => {
+  const updateRole = useCallback(async (userId: string, role: string) => {
     const res = await api.put<UserProfile>(`/users/${userId}`, { role })
     setUsers((prev) =>
       prev.map((u) => (u.id === userId ? { ...u, role: res.data.role } : u))
     )
     return res.data
-  }
+  }, [])
 
-  return { users, loading, fetch, updateRole }
+  const toggleActive = useCallback(async (userId: string, isActive: boolean) => {
+    const res = await api.put<UserProfile>(`/users/${userId}`, { is_active: isActive })
+    setUsers((prev) =>
+      prev.map((u) => (u.id === userId ? { ...u, is_active: res.data.is_active } : u))
+    )
+    return res.data
+  }, [])
+
+  return { users, loading, fetch, updateRole, toggleActive }
 }

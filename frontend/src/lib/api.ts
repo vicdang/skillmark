@@ -43,9 +43,15 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Redirect to login on unauthorized
-      window.location.href = '/login';
+    // Don't auto-redirect on 401 - let the caller handle it
+    // (useAuth hook handles /auth/me 401s gracefully)
+    // Only redirect if it's a real auth failure on protected endpoints
+    if (error.response?.status === 401 && !error.config?.url?.includes('/auth/')) {
+      // For non-auth endpoints, redirect to login after a short delay
+      // This prevents the redirect loop during bootstrap
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 100);
     }
     return Promise.reject(error);
   }

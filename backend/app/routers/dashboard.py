@@ -6,12 +6,36 @@ from app.db.client import get_db
 import anthropic
 from app.config import settings
 import io
+from datetime import datetime, timedelta
+from typing import Any
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
+# Simple in-memory cache with TTL
+_cache: dict[str, tuple[Any, datetime]] = {}
+CACHE_TTL_MINUTES = 15
 
-@router.get("/overview")
-async def overview(_: UserOut = Depends(get_current_user)):
+def get_cache(key: str) -> Any | None:
+  """Get cached value if not expired."""
+  if key in _cache:
+    value, expiry = _cache[key]
+    if datetime.now() < expiry:
+      return value
+    del _cache[key]
+  return None
+
+def set_cache(key: str, value: Any) -> None:
+  """Set cache value with TTL."""
+  _cache[key] = (value, datetime.now() + timedelta(minutes=CACHE_TTL_MINUTES))
+
+def invalidate_cache(*keys: str) -> None:
+  """Invalidate cache entries."""
+  for key in keys:
+    _cache.pop(key, None)
+
+
+async def _compute_overview():
+    """Compute overview data."""
     db = get_db()
     users_count = db.table("users").select("id", count="exact").eq("is_active", True).execute()
     projects_count = db.table("projects").select("id", count="exact").eq("is_archived", False).execute()
@@ -30,19 +54,30 @@ async def overview(_: UserOut = Depends(get_current_user)):
         s = p["status"]
         status_dist[s] = status_dist.get(s, 0) + 1
 
-    return {
+    data = {
         "total_employees": users_count.count,
         "total_projects": projects_count.count,
         "active_projects": active_projects.count,
         "total_skills_logged": skills_count.count,
         "projects_by_status": status_dist,
     }
+    set_cache("overview", data)
+    return data
+
+@router.get("/overview")
+async def overview(_: UserOut = Depends(get_current_user)):
+    # Return cached data immediately
+    cached = get_cache("overview")
+    if cached:
+        return cached
+    # No cache, compute and return
+    return await _compute_overview()
 
 
-@router.get("/workforce")
-async def workforce(_: UserOut = Depends(get_current_user)):
+async def _compute_workforce():
+    """Compute workforce data."""
     db = get_db()
-    users = db.table("users").select("department, role").eq("is_active", True).execute()
+    users = db.table("users").select("department, role").eq("is_active", True).limit(5000).execute()
     by_dept: dict[str, int] = {}
     by_role: dict[str, int] = {}
     for u in (users.data or []):
@@ -51,33 +86,39 @@ async def workforce(_: UserOut = Depends(get_current_user)):
         role = u.get("role") or "employee"
         by_role[role] = by_role.get(role, 0) + 1
 
-    # avg skill level
-    skills = db.table("employee_skills").select("level").execute()
+    # avg skill level - sample for speed
+    skills = db.table("employee_skills").select("level").limit(1000).execute()
     levels = [s["level"] for s in (skills.data or [])]
     avg_level = round(sum(levels) / len(levels), 2) if levels else 0
 
-    return {
+    data = {
         "by_department": [{"name": k, "count": v} for k, v in sorted(by_dept.items(), key=lambda x: -x[1])],
         "by_role": [{"name": k, "count": v} for k, v in by_role.items()],
         "avg_skill_level": avg_level,
     }
+    set_cache("workforce", data)
+    return data
+
+@router.get("/workforce")
+async def workforce(_: UserOut = Depends(get_current_user)):
+    cached = get_cache("workforce")
+    if cached:
+        return cached
+    return await _compute_workforce()
 
 
-@router.get("/skill-distribution")
-async def skill_distribution(_: UserOut = Depends(get_current_user)):
+async def _compute_skill_distribution():
+    """Compute skill distribution data."""
     db = get_db()
-    # Top skills by frequency
-    emp_skills = db.table("employee_skills").select("skill_id, level, skills(name, category_id, skill_categories(domain_id, skill_domains(name)))").execute()
+    # Top skills by frequency - use simpler join
+    emp_skills = db.table("employee_skills").select("skill_id, level, skills(name)").limit(5000).execute()
     skill_counts: dict[str, dict] = {}
     for es in (emp_skills.data or []):
         sid = es["skill_id"]
         skill_info = es.get("skills") or {}
         name = skill_info.get("name", sid)
-        cat = skill_info.get("skill_categories") or {}
-        domain_info = cat.get("skill_domains") or {}
-        domain = domain_info.get("name", "Other")
         if sid not in skill_counts:
-            skill_counts[sid] = {"skill_id": sid, "name": name, "domain": domain, "count": 0, "total_level": 0}
+            skill_counts[sid] = {"skill_id": sid, "name": name, "domain": "General", "count": 0, "total_level": 0}
         skill_counts[sid]["count"] += 1
         skill_counts[sid]["total_level"] += es["level"]
 
@@ -94,21 +135,31 @@ async def skill_distribution(_: UserOut = Depends(get_current_user)):
         by_domain[d]["count"] += s["count"]
         by_domain[d]["employees"] += 1
 
-    return {
+    data = {
         "top_skills": top_skills,
         "by_domain": list(by_domain.values()),
     }
+    set_cache("skill_distribution", data)
+    return data
+
+@router.get("/skill-distribution")
+async def skill_distribution(_: UserOut = Depends(get_current_user)):
+    cached = get_cache("skill_distribution")
+    if cached:
+        return cached
+    return await _compute_skill_distribution()
 
 
-@router.get("/skill-gaps")
-async def skill_gaps(_: UserOut = Depends(get_current_user)):
+async def _compute_skill_gaps():
+    """Compute skill gaps data."""
     db = get_db()
-    # Active projects' required_skills vs what employees have
+    # Active projects' required_skills vs what employees have - limit to recent projects
     active_projects = (
         db.table("projects")
         .select("id, title, rfp_extracted_data")
         .in_("status", ["approved", "in_progress", "review"])
         .eq("is_archived", False)
+        .limit(50)
         .execute()
     )
 
@@ -118,13 +169,13 @@ async def skill_gaps(_: UserOut = Depends(get_current_user)):
         rfp = proj.get("rfp_extracted_data") or {}
         required = rfp.get("required_skills") or []
         if isinstance(required, list):
-            for req in required:
+            for req in required[:10]:  # limit skills per project
                 skill = req.get("skill") or req.get("skill_id") or ""
                 if skill:
                     demand[skill] = demand.get(skill, 0) + 1
 
-    # Build supply map
-    emp_skills = db.table("employee_skills").select("skill_id, level, skills(name)").execute()
+    # Build supply map - sample
+    emp_skills = db.table("employee_skills").select("skill_id, skills(name)").limit(2000).execute()
     supply: dict[str, dict] = {}
     for es in (emp_skills.data or []):
         sid = es["skill_id"]
@@ -145,18 +196,28 @@ async def skill_gaps(_: UserOut = Depends(get_current_user)):
             })
 
     gaps.sort(key=lambda x: -x["gap"])
-    return {"gaps": gaps[:20]}
+    data = {"gaps": gaps[:20]}
+    set_cache("skill_gaps", data)
+    return data
+
+@router.get("/skill-gaps")
+async def skill_gaps(_: UserOut = Depends(get_current_user)):
+    cached = get_cache("skill_gaps")
+    if cached:
+        return cached
+    return await _compute_skill_gaps()
 
 
-@router.get("/trends")
-async def trends(period: str = "6m", _: UserOut = Depends(get_current_user)):
+async def _compute_trends():
+    """Compute trends data."""
     db = get_db()
-    # Skill additions from audit log
+    # Skill additions from audit log - limit to recent
     audit = (
         db.table("skill_audit_log")
         .select("skill_id, action, created_at, skills(name)")
         .eq("action", "add")
         .order("created_at", desc=False)
+        .limit(2000)
         .execute()
     )
 
@@ -183,23 +244,32 @@ async def trends(period: str = "6m", _: UserOut = Depends(get_current_user)):
             points.append({"month": month, "count": month_counts[month].get(skill_name, 0)})
         series.append({"skill": skill_name, "total": skill_totals[skill_name], "series": points})
 
-    return {"series": series}
+    data = {"series": series}
+    set_cache("trends", data)
+    return data
+
+@router.get("/trends")
+async def trends(period: str = "6m", _: UserOut = Depends(get_current_user)):
+    cached = get_cache("trends")
+    if cached:
+        return cached
+    return await _compute_trends()
 
 
-@router.get("/availability-overview")
-async def availability_overview(_: UserOut = Depends(get_current_user)):
-    """Buckets employees by their current availability %."""
+async def _compute_availability_overview():
+    """Compute availability overview data."""
     db = get_db()
     from datetime import date
     current_month = date.today().strftime("%Y-%m")
     month_date = f"{current_month}-01"
 
-    users = db.table("users").select("id").eq("is_active", True).execute()
+    users = db.table("users").select("id").eq("is_active", True).limit(5000).execute()
     allocs = (
         db.table("allocations")
         .select("user_id, allocation_percentage")
         .eq("month", month_date)
         .eq("status", "confirmed")
+        .limit(5000)
         .execute()
     )
 
@@ -220,7 +290,17 @@ async def availability_overview(_: UserOut = Depends(get_current_user)):
         else:
             buckets["75-100"] += 1
 
-    return {"month": current_month, "buckets": [{"range": k, "count": v} for k, v in buckets.items()]}
+    data = {"month": current_month, "buckets": [{"range": k, "count": v} for k, v in buckets.items()]}
+    set_cache("availability_overview", data)
+    return data
+
+@router.get("/availability-overview")
+async def availability_overview(_: UserOut = Depends(get_current_user)):
+    """Buckets employees by their current availability %."""
+    cached = get_cache("availability_overview")
+    if cached:
+        return cached
+    return await _compute_availability_overview()
 
 
 @router.get("/predictions")
@@ -228,14 +308,15 @@ async def predictions(current_user: UserOut = Depends(get_current_user)):
     """AI-generated workforce skill needs forecast."""
     db = get_db()
 
-    # Gather context
+    # Gather context - limit to recent projects and skills
     active_proj = (
         db.table("projects")
         .select("title, domain, tech_stack, rfp_extracted_data")
         .in_("status", ["approved", "in_progress", "review"])
+        .limit(50)
         .execute()
     )
-    top_skills_r = db.table("employee_skills").select("skill_id, skills(name)").execute()
+    top_skills_r = db.table("employee_skills").select("skill_id, skills(name)").limit(1000).execute()
     skill_freq: dict[str, int] = {}
     for es in (top_skills_r.data or []):
         name = (es.get("skills") or {}).get("name", es["skill_id"])
