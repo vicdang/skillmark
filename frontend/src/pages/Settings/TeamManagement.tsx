@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useUsers } from '@/hooks/useUsers'
 import { useAuthStore } from '@/stores/authStore'
-import { api } from '@/lib/api'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { getInitials } from '@/lib/utils'
 import { ChevronDown, Loader2 } from 'lucide-react'
-import type { User } from '@/types'
 
 const ROLES = ['admin', 'manager', 'employee', 'guest', 'viewer'] as const
 const ROLE_LABELS: Record<string, string> = {
