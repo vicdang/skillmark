@@ -46,6 +46,23 @@ async def update_user(
     )
     if not result.data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    # Create notification if user is being deactivated or reactivated
+    if payload.is_active is False:
+        db.table("notifications").insert({
+            "user_id": str(user_id),
+            "type": "account_deactivated",
+            "title": "Account Deactivated",
+            "message": "Your account has been deactivated by an administrator.",
+        }).execute()
+    elif payload.is_active is True:
+        db.table("notifications").insert({
+            "user_id": str(user_id),
+            "type": "account_activated",
+            "title": "Account Reactivated",
+            "message": "Your account has been reactivated by an administrator.",
+        }).execute()
+
     return UserOut(**result.data[0])
 
 
