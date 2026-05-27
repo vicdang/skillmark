@@ -1,8 +1,0 @@
-{
-  "buildCommand": "npm run build",
-  "installCommand": "npm install",
-  "outputDirectory": "dist",
-  "framework": "vite",
-  "regions": ["iad1"],
-  "rootDirectory": "frontend"
-}
