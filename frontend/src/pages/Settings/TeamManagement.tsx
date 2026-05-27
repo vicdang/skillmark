@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useUsers } from '@/hooks/useUsers'
 import { useAuthStore } from '@/stores/authStore'
+import { api } from '@/lib/api'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { getInitials } from '@/lib/utils'
 import { ChevronDown, Loader2 } from 'lucide-react'
+import type { User } from '@/types'
 
 const ROLES = ['admin', 'manager', 'employee', 'guest', 'viewer'] as const
 const ROLE_LABELS: Record<string, string> = {
@@ -31,11 +33,15 @@ export function TeamManagement() {
       await updateRole(userId, newRole)
       setOpenDropdown(null)
 
-      // If user changed their own role, reload to refresh auth token
+      // If user changed their own role, refresh auth state
       if (userId === currentUser?.id) {
-        setTimeout(() => {
+        try {
+          const { data } = await api.get<User>('/auth/me')
+          useAuthStore.setState({ user: data })
+        } catch {
+          // If refresh fails, reload page
           window.location.reload()
-        }, 500)
+        }
       }
     } finally {
       setUpdating(null)
