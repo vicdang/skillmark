@@ -55,8 +55,9 @@ export function useAuth() {
           const { data } = await api.get<User>('/auth/me')
           return data
         } catch (e: any) {
-          // 401 = invalid/expired token, don't retry
-          if (e.response?.status === 401) {
+          const status = e.response?.status
+          // 401 = invalid/expired token, 403 = account deactivated
+          if (status === 401 || status === 403) {
             return null
           }
           if (i < retries - 1) await new Promise((r) => setTimeout(r, 800))
@@ -67,8 +68,9 @@ export function useAuth() {
         const { data } = await api.get<User>('/auth/me')
         return data
       } catch (e: any) {
-        // 401 = invalid/expired token
-        if (e.response?.status === 401) {
+        // 401 = invalid/expired token, 403 = account deactivated
+        const status = e.response?.status
+        if (status === 401 || status === 403) {
           return null
         }
         return null
@@ -124,6 +126,10 @@ export function useAuth() {
             setNotifications(notifs)
           } catch { /* non-fatal */ }
           subscribeRealtime(profile.id)
+        } else {
+          // Profile failed to load - could be deactivated or other error
+          // Sign out and let login page handle the error
+          await supabase.auth.signOut()
         }
         markBootstrapped()
       }

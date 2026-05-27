@@ -101,12 +101,22 @@ export function Login() {
           const { data: profile } = await api.get<User>('/auth/me')
           setUser(profile)
         } catch (profileErr: unknown) {
-          const status = (profileErr as { response?: { status?: number } })?.response?.status
-          if (status === 404) {
+          const response = (profileErr as { response?: any })?.response
+          const status = response?.status
+          const detail = response?.data?.detail
+
+          if (status === 403) {
+            // Account deactivated
+            setError(detail || 'Your account has been deactivated.')
+          } else if (status === 404) {
             // Profile row missing — upsert then fetch
-            await api.post('/auth/upsert-profile')
-            const { data: profile } = await api.get<User>('/auth/me')
-            setUser(profile)
+            try {
+              await api.post('/auth/upsert-profile')
+              const { data: profile } = await api.get<User>('/auth/me')
+              setUser(profile)
+            } catch {
+              setError('Could not load profile. Check backend is running.')
+            }
           } else {
             setError('Could not load profile. Check backend is running.')
           }

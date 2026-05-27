@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.dependencies import get_current_user
 from app.models.user import UserOut
@@ -10,6 +10,11 @@ bearer = HTTPBearer()
 
 @router.get("/me", response_model=UserOut)
 async def me(current_user: UserOut = Depends(get_current_user)):
+    if not current_user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account has been deactivated. Please contact an administrator for more information."
+        )
     return current_user
 
 
