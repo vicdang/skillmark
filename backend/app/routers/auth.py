@@ -10,7 +10,7 @@ bearer = HTTPBearer()
 
 @router.get("/me", response_model=UserOut)
 async def me(current_user: UserOut = Depends(get_current_user)):
-    if not current_user.is_active:
+    if current_user.is_active is False:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Your account has been deactivated. Please contact an administrator for more information."
