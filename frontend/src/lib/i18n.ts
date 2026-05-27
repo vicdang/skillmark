@@ -13,9 +13,15 @@ i18n
     backend: {
       loadPath: '/locales/{{lng}}/{{ns}}.json',
     },
+    detection: {
+      order: ['localStorage', 'navigator'],
+      caches: ['localStorage'],
+    },
     interpolation: {
       escapeValue: false,
     },
+    supportedLngs: ['en', 'vi'],
+    nonExplicitSupportedLngs: true,
   });
 
 export default i18n;
