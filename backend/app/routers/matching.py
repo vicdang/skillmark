@@ -74,37 +74,40 @@ async def add_to_wishlist(
     payload: WishListAdd,
     current_user: UserOut = Depends(require_manager_or_above),
 ):
-    db = get_db()
-    existing = (
-        db.table("wish_list")
-        .select("id")
-        .eq("project_id", str(project_id))
-        .eq("employee_id", str(payload.employee_id))
-        .execute()
-    )
-    if existing.data:
-        return {"status": "already_added"}
+    try:
+        db = get_db()
+        existing = (
+            db.table("wish_list")
+            .select("id")
+            .eq("project_id", str(project_id))
+            .eq("employee_id", str(payload.employee_id))
+            .execute()
+        )
+        if existing.data:
+            return {"status": "already_added"}
 
-    db.table("wish_list").insert({
-        "project_id": str(project_id),
-        "employee_id": str(payload.employee_id),
-        "added_by": str(current_user.id),
-        "match_score": payload.score,
-        "ai_explanation": payload.explanation,
-        "notes": payload.notes,
-    }).execute()
+        db.table("wish_list").insert({
+            "project_id": str(project_id),
+            "employee_id": str(payload.employee_id),
+            "added_by": str(current_user.id),
+            "match_score": payload.score,
+            "ai_explanation": payload.explanation,
+            "notes": payload.notes,
+        }).execute()
 
-    proj_r = db.table("projects").select("title").eq("id", str(project_id)).single().execute()
-    proj_title = proj_r.data["title"] if proj_r.data else "a project"
-    db.table("notifications").insert({
-        "user_id": str(payload.employee_id),
-        "type": "added_to_wishlist",
-        "title": "Added to wish list",
-        "message": f"You've been shortlisted for '{proj_title}'.",
-        "link": f"/projects/{project_id}",
-    }).execute()
+        proj_r = db.table("projects").select("title").eq("id", str(project_id)).single().execute()
+        proj_title = proj_r.data["title"] if proj_r.data else "a project"
+        db.table("notifications").insert({
+            "user_id": str(payload.employee_id),
+            "type": "added_to_wishlist",
+            "title": "Added to wish list",
+            "message": f"You've been shortlisted for '{proj_title}'.",
+            "link": f"/projects/{project_id}",
+        }).execute()
 
-    return {"status": "added"}
+        return {"status": "added"}
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 @router.delete("/projects/{project_id}/wishlist/{employee_id}", status_code=status.HTTP_204_NO_CONTENT)
