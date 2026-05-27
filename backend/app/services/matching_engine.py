@@ -146,6 +146,9 @@ def _skill_details(employee_skills: list[dict], required_skills: list[dict]) -> 
 
 async def ai_explain_match(employee: dict, project: dict, breakdown: dict) -> str:
     """Generate a short AI explanation for the match."""
+    if not settings.anthropic_api_key:
+        return "AI explanation not available (API key not configured)"
+
     try:
         client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
         prompt = (
@@ -165,5 +168,5 @@ async def ai_explain_match(employee: dict, project: dict, breakdown: dict) -> st
             messages=[{"role": "user", "content": prompt}],
         )
         return msg.content[0].text  # type: ignore[index]
-    except Exception:
-        return ""
+    except Exception as e:
+        return f"Error generating explanation: {str(e)}"
