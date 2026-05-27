@@ -94,7 +94,6 @@ async def add_to_wishlist(
         "notes": payload.notes,
     }).execute()
 
-    # notify employee
     proj_r = db.table("projects").select("title").eq("id", str(project_id)).single().execute()
     proj_title = proj_r.data["title"] if proj_r.data else "a project"
     db.table("notifications").insert({
