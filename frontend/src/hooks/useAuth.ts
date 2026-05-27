@@ -7,6 +7,7 @@ import { api } from '@/lib/api'
 import type { User, Notification } from '@/types'
 
 export function useAuth() {
+  const user = useAuthStore((s) => s.user)
   const setUser = useAuthStore((s) => s.setUser)
   const setBootstrapped = useAuthStore((s) => s.setBootstrapped)
   const { theme } = useThemeStore()
@@ -75,6 +76,23 @@ export function useAuth() {
 
     // Primary bootstrap: check existing session immediately
     const bootstrap = async () => {
+      // If user is already in store (from localStorage), mark as bootstrapped immediately
+      if (user) {
+        markBootstrapped()
+        // Still validate and refresh user data in background
+        try {
+          const profile = await resolveProfile()
+          if (profile) {
+            setUser(profile)
+            await loadNotifications()
+            subscribeRealtime(profile.id)
+          }
+        } catch (e) {
+          console.error('[useAuth] background profile refresh error', e)
+        }
+        return
+      }
+
       try {
         const { data } = await supabase.auth.getSession()
         if (data.session) {
