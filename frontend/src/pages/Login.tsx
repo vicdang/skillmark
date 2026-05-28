@@ -210,11 +210,25 @@ export function Login() {
 
           {/* OAuth */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-            <button style={btnOutline} onClick={() => handleOAuth('google')}>
+            <button
+              style={btnOutline}
+              onClick={() => {
+                console.log('[BUTTON] Google button clicked!')
+                alert('Google button clicked!')
+                handleOAuth('google')
+              }}
+            >
               <GoogleIcon />
               {t('auth.continueWithGoogle')}
             </button>
-            <button style={btnOutline} onClick={() => handleOAuth('github')}>
+            <button
+              style={btnOutline}
+              onClick={() => {
+                console.log('[BUTTON] GitHub button clicked!')
+                alert('GitHub button clicked!')
+                handleOAuth('github')
+              }}
+            >
               <GitHubIcon />
               {t('auth.continueWithGitHub')}
             </button>
