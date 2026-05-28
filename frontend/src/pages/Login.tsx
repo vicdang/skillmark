@@ -69,12 +69,24 @@ export function Login() {
   if (user) return <Navigate to="/" replace />
 
   const handleOAuth = async (provider: 'google' | 'github') => {
+    console.log(`[handleOAuth] Starting ${provider} OAuth...`)
     setError('')
-    const { error: err } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: `${window.location.origin}/` },
-    })
-    if (err) setError(err.message)
+    try {
+      const { error: err } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: `${window.location.origin}/` },
+      })
+      console.log(`[handleOAuth] OAuth response:`, err)
+      if (err) {
+        console.error(`[handleOAuth] OAuth error:`, err.message)
+        setError(err.message)
+      } else {
+        console.log(`[handleOAuth] OAuth flow initiated successfully`)
+      }
+    } catch (e: any) {
+      console.error(`[handleOAuth] Exception:`, e.message)
+      setError(e.message)
+    }
   }
 
   const handleEmailAuth = async (e: React.FormEvent) => {
