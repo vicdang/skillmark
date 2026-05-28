@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Search, ChevronRight } from 'lucide-react'
 import { useUsers } from '@/hooks/useUsers'
+import { useEmployeeSummaries } from '@/hooks/useEmployeeSummaries'
 import { getInitials } from '@/lib/utils'
 import type { Role } from '@/types'
 
@@ -41,13 +42,23 @@ const selectStyle: React.CSSProperties = {
 export function Employees() {
   const { t } = useTranslation()
   const { users, loading, fetch } = useUsers()
+  const { summaries } = useEmployeeSummaries()
 
   const [query, setQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<Role | 'all'>('all')
+  const [domainFilter, setDomainFilter] = useState<string>('all')
 
   useEffect(() => {
     fetch()
   }, [fetch])
+
+  const allDomains = useMemo(() => {
+    const domains = new Set<string>()
+    Object.values(summaries).forEach((s) => {
+      s.strongest_domain && domains.add(s.strongest_domain)
+    })
+    return Array.from(domains).sort()
+  }, [summaries])
 
   const filtered = users.filter((u) => {
     const matchesQuery =
@@ -56,7 +67,9 @@ export function Employees() {
       u.email.toLowerCase().includes(query.toLowerCase()) ||
       (u.department ?? '').toLowerCase().includes(query.toLowerCase())
     const matchesRole = roleFilter === 'all' || u.role === roleFilter
-    return matchesQuery && matchesRole
+    const summary = summaries[u.id]
+    const matchesDomain = domainFilter === 'all' || summary?.strongest_domain === domainFilter
+    return matchesQuery && matchesRole && matchesDomain
   })
 
   return (
@@ -70,8 +83,8 @@ export function Employees() {
       </div>
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: 10 }}>
-        <div style={{ position: 'relative', flex: 1, maxWidth: 320 }}>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 200, maxWidth: 320 }}>
           <Search size={13} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#4b5563' }} />
           <input
             style={inputStyle}
@@ -93,6 +106,16 @@ export function Employees() {
           <option value="employee">Employee</option>
           <option value="viewer">Viewer</option>
         </select>
+        <select
+          style={selectStyle}
+          value={domainFilter}
+          onChange={(e) => setDomainFilter(e.target.value)}
+        >
+          <option value="all">All Domains</option>
+          {allDomains.map((d) => (
+            <option key={d} value={d}>{d}</option>
+          ))}
+        </select>
       </div>
 
       {/* Content */}
@@ -105,7 +128,7 @@ export function Employees() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid #1a2538' }}>
-                {['Employee', 'Role', 'Department', 'Job Title', ''].map((h) => (
+                {['Employee', 'Role', 'Department', 'Job Title', 'Skills', 'Avg Level', 'Strongest Domain', ''].map((h) => (
                   <th key={h} style={{
                     padding: '10px 16px',
                     textAlign: 'left',
@@ -121,52 +144,68 @@ export function Employees() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((u, idx) => (
-                <tr key={u.id} style={{
-                  borderBottom: idx < filtered.length - 1 ? '1px solid #0f1724' : 'none',
-                  transition: 'background 0.1s',
-                }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = '#3b82f606' }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = 'transparent' }}
-                >
-                  <td style={{ padding: '12px 16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{
-                        width: 32, height: 32, borderRadius: 7, flexShrink: 0,
-                        background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 11, fontWeight: 700, color: '#fff',
-                      }}>
-                        {u.avatar_url
-                          ? <img src={u.avatar_url} alt="" style={{ width: '100%', height: '100%', borderRadius: 7, objectFit: 'cover' }} />
-                          : getInitials(u.full_name)
-                        }
+              {filtered.map((u, idx) => {
+                const summary = summaries[u.id]
+                return (
+                  <tr key={u.id} style={{
+                    borderBottom: idx < filtered.length - 1 ? '1px solid #0f1724' : 'none',
+                    transition: 'background 0.1s',
+                  }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = '#3b82f606' }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = 'transparent' }}
+                  >
+                    <td style={{ padding: '12px 16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{
+                          width: 32, height: 32, borderRadius: 7, flexShrink: 0,
+                          background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 11, fontWeight: 700, color: '#fff',
+                        }}>
+                          {u.avatar_url
+                            ? <img src={u.avatar_url} alt="" style={{ width: '100%', height: '100%', borderRadius: 7, objectFit: 'cover' }} />
+                            : getInitials(u.full_name)
+                          }
+                        </div>
+                        <div>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0', margin: 0 }}>{u.full_name}</p>
+                          <p style={{ fontSize: 11, color: '#4b5563', margin: 0 }}>{u.email}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f0', margin: 0 }}>{u.full_name}</p>
-                        <p style={{ fontSize: 11, color: '#4b5563', margin: 0 }}>{u.email}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <span style={{
-                      display: 'inline-flex', alignItems: 'center',
-                      padding: '2px 8px', borderRadius: 20,
-                      fontSize: 10, fontWeight: 700,
-                      textTransform: 'uppercase', letterSpacing: '0.05em',
-                      background: ROLE_COLORS[u.role]?.bg ?? '#1a2538',
-                      color: ROLE_COLORS[u.role]?.text ?? '#6b7280',
-                    }}>{u.role}</span>
-                  </td>
-                  <td style={{ padding: '12px 16px', fontSize: 12, color: '#6b7280' }}>{u.department ?? '—'}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 12, color: '#6b7280' }}>{u.job_title ?? '—'}</td>
-                  <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                    <Link to={`/employees/${u.id}`} style={{ color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <ChevronRight size={15} />
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center',
+                        padding: '2px 8px', borderRadius: 20,
+                        fontSize: 10, fontWeight: 700,
+                        textTransform: 'uppercase', letterSpacing: '0.05em',
+                        background: ROLE_COLORS[u.role]?.bg ?? '#1a2538',
+                        color: ROLE_COLORS[u.role]?.text ?? '#6b7280',
+                      }}>{u.role}</span>
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: 12, color: '#6b7280' }}>{u.department ?? '—'}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 12, color: '#6b7280' }}>{u.job_title ?? '—'}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 12, color: '#e2e8f0', fontWeight: 600 }}>
+                      {summary ? summary.total_skills : '—'}
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: 12, color: '#e2e8f0', fontWeight: 600 }}>
+                      {summary && summary.avg_level > 0 ? summary.avg_level.toFixed(1) : '—'}
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: 12, color: '#6b7280' }}>
+                      {summary?.strongest_domain ? (
+                        <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 4, background: '#3b82f620', color: '#60a5fa' }}>
+                          {summary.strongest_domain}
+                        </span>
+                      ) : '—'}
+                    </td>
+                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                      <Link to={`/employees/${u.id}`} style={{ color: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <ChevronRight size={15} />
+                      </Link>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

@@ -61,3 +61,11 @@ class EmployeeSkillOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     skill: SkillOut | None = None
+
+
+class EmployeeSkillSummaryOut(BaseModel):
+    user_id: uuid.UUID
+    total_skills: int
+    avg_level: float
+    domains: list[str]
+    strongest_domain: str | None = None

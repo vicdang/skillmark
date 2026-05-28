@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from app.dependencies import get_current_user, require_admin
 from app.models.user import UserOut
-from app.models.skill import EmployeeSkillCreate, EmployeeSkillUpdate, EmployeeSkillOut
+from app.models.skill import EmployeeSkillCreate, EmployeeSkillUpdate, EmployeeSkillOut, EmployeeSkillSummaryOut
 from app.db.client import get_db
 import uuid
 from datetime import datetime, timezone
@@ -96,6 +96,68 @@ async def get_employee_skills(user_id: uuid.UUID, _: UserOut = Depends(get_curre
         .execute()
     )
     return [EmployeeSkillOut(**r) for r in result.data]
+
+
+@router.get("/employees/summaries", response_model=dict[str, EmployeeSkillSummaryOut])
+async def get_all_employees_skill_summaries(_: UserOut = Depends(get_current_user)):
+    db = get_db()
+
+    result = (
+        db.table("employee_skills")
+        .select("user_id, level, skill:skills(id, category_id), skill!inner(category:skill_categories(id, domain_id), category!inner(domain:skill_domains(id, name)))")
+        .execute()
+    )
+
+    summaries: dict[str, dict] = {}
+    for row in result.data:
+        user_id = str(row["user_id"])
+        level = row["level"]
+
+        if user_id not in summaries:
+            summaries[user_id] = {
+                "total_skills": 0,
+                "levels": [],
+                "domain_names": set(),
+            }
+
+        summaries[user_id]["total_skills"] += 1
+        summaries[user_id]["levels"].append(level)
+
+        if row["skill"] and row["skill"].get("category") and row["skill"]["category"].get("domain"):
+            domain_name = row["skill"]["category"]["domain"].get("name")
+            if domain_name:
+                summaries[user_id]["domain_names"].add(domain_name)
+
+    result_map = {}
+    for user_id, data in summaries.items():
+        avg_level = sum(data["levels"]) / len(data["levels"]) if data["levels"] else 0
+        domains = sorted(list(data["domain_names"]))
+
+        strongest_domain = None
+        if domains:
+            domain_levels: dict[str, list[int]] = {}
+            for row in result.data:
+                if str(row["user_id"]) == user_id:
+                    if row["skill"] and row["skill"].get("category") and row["skill"]["category"].get("domain"):
+                        domain_name = row["skill"]["category"]["domain"].get("name")
+                        if domain_name:
+                            if domain_name not in domain_levels:
+                                domain_levels[domain_name] = []
+                            domain_levels[domain_name].append(row["level"])
+
+            if domain_levels:
+                domain_avgs = {d: sum(levels) / len(levels) for d, levels in domain_levels.items()}
+                strongest_domain = max(domain_avgs.items(), key=lambda x: x[1])[0]
+
+        result_map[user_id] = EmployeeSkillSummaryOut(
+            user_id=uuid.UUID(user_id),
+            total_skills=data["total_skills"],
+            avg_level=round(avg_level, 2),
+            domains=domains,
+            strongest_domain=strongest_domain,
+        )
+
+    return result_map
 
 
 @router.post("/my/skills", response_model=EmployeeSkillOut, status_code=status.HTTP_201_CREATED)
