@@ -209,3 +209,4 @@ __marimo__/
 # Claude Code local settings (may contain tokens/personal config)
 .claude/settings.local.json
 .vercel
+.env*
