@@ -102,16 +102,26 @@ async def get_employee_skills(user_id: uuid.UUID, _: UserOut = Depends(get_curre
 async def get_all_employees_skill_summaries(_: UserOut = Depends(get_current_user)):
     db = get_db()
 
-    result = (
+    employee_skills = (
         db.table("employee_skills")
-        .select("user_id, level, skill:skills(id, category_id), skill!inner(category:skill_categories(id, domain_id), category!inner(domain:skill_domains(id, name)))")
+        .select("user_id, level, skill_id")
         .execute()
     )
 
+    skills_data = db.table("skills").select("id, category_id").execute()
+    skill_map = {s["id"]: s["category_id"] for s in skills_data.data}
+
+    categories_data = db.table("skill_categories").select("id, domain_id").execute()
+    category_map = {c["id"]: c["domain_id"] for c in categories_data.data}
+
+    domains_data = db.table("skill_domains").select("id, name").execute()
+    domain_map = {d["id"]: d["name"] for d in domains_data.data}
+
     summaries: dict[str, dict] = {}
-    for row in result.data:
+    for row in employee_skills.data:
         user_id = str(row["user_id"])
         level = row["level"]
+        skill_id = row["skill_id"]
 
         if user_id not in summaries:
             summaries[user_id] = {
@@ -123,10 +133,13 @@ async def get_all_employees_skill_summaries(_: UserOut = Depends(get_current_use
         summaries[user_id]["total_skills"] += 1
         summaries[user_id]["levels"].append(level)
 
-        if row["skill"] and row["skill"].get("category") and row["skill"]["category"].get("domain"):
-            domain_name = row["skill"]["category"]["domain"].get("name")
-            if domain_name:
-                summaries[user_id]["domain_names"].add(domain_name)
+        category_id = skill_map.get(skill_id)
+        if category_id:
+            domain_id = category_map.get(category_id)
+            if domain_id:
+                domain_name = domain_map.get(domain_id)
+                if domain_name:
+                    summaries[user_id]["domain_names"].add(domain_name)
 
     result_map = {}
     for user_id, data in summaries.items():
@@ -136,14 +149,19 @@ async def get_all_employees_skill_summaries(_: UserOut = Depends(get_current_use
         strongest_domain = None
         if domains:
             domain_levels: dict[str, list[int]] = {}
-            for row in result.data:
+            for row in employee_skills.data:
                 if str(row["user_id"]) == user_id:
-                    if row["skill"] and row["skill"].get("category") and row["skill"]["category"].get("domain"):
-                        domain_name = row["skill"]["category"]["domain"].get("name")
-                        if domain_name:
-                            if domain_name not in domain_levels:
-                                domain_levels[domain_name] = []
-                            domain_levels[domain_name].append(row["level"])
+                    skill_id = row["skill_id"]
+                    level = row["level"]
+                    category_id = skill_map.get(skill_id)
+                    if category_id:
+                        domain_id = category_map.get(category_id)
+                        if domain_id:
+                            domain_name = domain_map.get(domain_id)
+                            if domain_name:
+                                if domain_name not in domain_levels:
+                                    domain_levels[domain_name] = []
+                                domain_levels[domain_name].append(level)
 
             if domain_levels:
                 domain_avgs = {d: sum(levels) / len(levels) for d, levels in domain_levels.items()}
