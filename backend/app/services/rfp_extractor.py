@@ -20,12 +20,18 @@ Return ONLY valid JSON matching this schema:
 }"""
 
 
-async def extract_rfp_background(project_id: str, content: bytes, filename: str, uploader_id: str):
+def extract_rfp_background(project_id: str, content: bytes, filename: str, uploader_id: str):
+    import logging
+    logger = logging.getLogger(__name__)
     try:
+        logger.info(f"[RFP] Starting extraction for project {project_id}")
         text = _parse_file(content, filename)
+        logger.info(f"[RFP] Parsed file, text length: {len(text)}")
         extracted = _call_ai(text)
+        logger.info(f"[RFP] AI extraction complete for project {project_id}")
         db = get_db()
         db.table("projects").update({"rfp_extracted_data": extracted}).eq("id", project_id).execute()
+        logger.info(f"[RFP] Database updated for project {project_id}")
         db.table("notifications").insert({
             "user_id": uploader_id,
             "type": "rfp_extraction_complete",
@@ -34,6 +40,7 @@ async def extract_rfp_background(project_id: str, content: bytes, filename: str,
             "link": f"/projects/{project_id}",
         }).execute()
     except Exception as e:
+        logger.error(f"[RFP] Extraction failed for project {project_id}: {e}", exc_info=True)
         db = get_db()
         db.table("notifications").insert({
             "user_id": uploader_id,
