@@ -26,10 +26,13 @@ api.interceptors.request.use(
 
       if (data.session?.access_token) {
         config.headers.Authorization = `Bearer ${data.session.access_token}`;
+        console.log('[api] Auth token added (first 30 chars):', data.session.access_token.substring(0, 30));
+      } else {
+        console.debug('[api] No session found, skipping auth header');
       }
     } catch (error) {
       // If session fails, continue without auth (public endpoints)
-      console.debug('Session fetch failed, continuing without auth', error);
+      console.debug('[api] Session fetch failed, continuing without auth', error);
     }
 
     return config;
