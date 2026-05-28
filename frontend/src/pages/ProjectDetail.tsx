@@ -98,7 +98,7 @@ export function ProjectDetail() {
     return () => {
       mounted = false
     }
-  }, [id])
+  }, [id, project?.rfp_file_url])
 
   const handleUpload = async (file: File) => {
     if (!id) return
