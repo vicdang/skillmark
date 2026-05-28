@@ -23,15 +23,19 @@ Return ONLY valid JSON matching this schema:
 def extract_rfp_background(project_id: str, content: bytes, filename: str, uploader_id: str):
     import logging
     logger = logging.getLogger(__name__)
+    logger.info(f"[RFP] extract_rfp_background called for project {project_id}")
     try:
         logger.info(f"[RFP] Starting extraction for project {project_id}")
         text = _parse_file(content, filename)
         logger.info(f"[RFP] Parsed file, text length: {len(text)}")
         extracted = _call_ai(text)
-        logger.info(f"[RFP] AI extraction complete for project {project_id}")
+        logger.info(f"[RFP] AI extraction complete for project {project_id}, data keys: {list(extracted.keys())}")
         db = get_db()
-        db.table("projects").update({"rfp_extracted_data": extracted}).eq("id", project_id).execute()
+        logger.info(f"[RFP] Updating database with extracted data")
+        result = db.table("projects").update({"rfp_extracted_data": extracted}).eq("id", project_id).execute()
+        logger.info(f"[RFP] Database update result: {result}")
         logger.info(f"[RFP] Database updated for project {project_id}")
+        logger.info(f"[RFP] Sending notification to user {uploader_id}")
         db.table("notifications").insert({
             "user_id": uploader_id,
             "type": "rfp_extraction_complete",
@@ -39,6 +43,7 @@ def extract_rfp_background(project_id: str, content: bytes, filename: str, uploa
             "message": f"AI extracted data from your RFP for project {project_id}",
             "link": f"/projects/{project_id}",
         }).execute()
+        logger.info(f"[RFP] Extraction complete for project {project_id}")
     except Exception as e:
         logger.error(f"[RFP] Extraction failed for project {project_id}: {e}", exc_info=True)
         db = get_db()

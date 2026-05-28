@@ -58,13 +58,21 @@ export function ProjectDetail() {
     let attempt = 0
     const maxAttempts = 30 // 2.5 minutes max (5s * 30)
 
+    console.log('[ProjectDetail] RFP extraction polling started for project:', id)
+
     const pollExtraction = async () => {
       if (!mounted || attempt >= maxAttempts) return
       attempt++
 
       try {
         const res = await api.get(`/projects/${id}`)
+        console.log(`[ProjectDetail] Poll attempt ${attempt}:`, {
+          hasRfpFile: !!res.data.rfp_file_url,
+          hasExtractedData: !!res.data.rfp_extracted_data,
+          extractedDataKeys: res.data.rfp_extracted_data ? Object.keys(res.data.rfp_extracted_data) : null,
+        })
         if (res.data.rfp_extracted_data) {
+          console.log('[ProjectDetail] Extraction complete! Showing review dialog')
           if (mounted) {
             await update(res.data)
             setExtracting(false)
@@ -72,13 +80,15 @@ export function ProjectDetail() {
           }
           return
         }
-      } catch {
+      } catch (error) {
+        console.error('[ProjectDetail] Poll error:', error)
         // continue polling on error
       }
 
       if (mounted && attempt < maxAttempts) {
         setTimeout(pollExtraction, 5000) // Poll every 5 seconds
       } else if (mounted && attempt >= maxAttempts) {
+        console.log('[ProjectDetail] Max polling attempts reached')
         setExtracting(false)
       }
     }
@@ -93,15 +103,21 @@ export function ProjectDetail() {
   const handleUpload = async (file: File) => {
     if (!id) return
     setUploading(true)
+    console.log('[ProjectDetail] Uploading RFP file:', file.name, file.type)
     try {
       const form = new FormData()
       form.append('file', file)
-      await api.post(`/projects/${id}/upload-rfp`, form, {
+      const uploadRes = await api.post(`/projects/${id}/upload-rfp`, form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
+      console.log('[ProjectDetail] Upload response:', uploadRes.data)
       const res = await api.get(`/projects/${id}`)
+      console.log('[ProjectDetail] Project fetched after upload, rfp_file_url:', res.data.rfp_file_url)
       await update(res.data as any)
       setShowRfpUpload(false)
+    } catch (error) {
+      console.error('[ProjectDetail] Upload error:', error)
+      throw error
     } finally {
       setUploading(false)
     }
