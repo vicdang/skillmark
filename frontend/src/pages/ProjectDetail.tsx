@@ -46,22 +46,46 @@ export function ProjectDetail() {
   }, [id])
 
   useEffect(() => {
-    if (!id || !project?.rfp_file_url || project?.rfp_extracted_data) return
+    if (!id || !project?.rfp_file_url || project?.rfp_extracted_data) {
+      setExtracting(false)
+      return
+    }
+
     setExtracting(true)
-    const interval = setInterval(async () => {
+    let mounted = true
+    let attempt = 0
+    const maxAttempts = 30 // 2.5 minutes max (5s * 30)
+
+    const pollExtraction = async () => {
+      if (!mounted || attempt >= maxAttempts) return
+      attempt++
+
       try {
         const res = await api.get(`/projects/${id}`)
         if (res.data.rfp_extracted_data) {
-          await update(res.data)
-          setExtracting(false)
-          clearInterval(interval)
+          if (mounted) {
+            await update(res.data)
+            setExtracting(false)
+          }
+          return
         }
       } catch {
-        // silently continue polling
+        // continue polling on error
       }
-    }, 2000)
-    return () => clearInterval(interval)
-  }, [id, project?.rfp_file_url, project?.rfp_extracted_data])
+
+      if (mounted && attempt < maxAttempts) {
+        setTimeout(pollExtraction, 5000) // Poll every 5 seconds
+      } else if (mounted && attempt >= maxAttempts) {
+        setExtracting(false)
+      }
+    }
+
+    pollExtraction()
+
+    return () => {
+      mounted = false
+    }
+  }, [id])
 
   const handleUpload = async (file: File) => {
     if (!id) return
