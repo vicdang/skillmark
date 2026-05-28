@@ -8,6 +8,7 @@ import { useWishList, useAllocations } from '@/hooks/useMatching'
 import { StatusBadge } from '@/components/projects/StatusBadge'
 import { ProjectFormDialog } from '@/components/projects/ProjectFormDialog'
 import { RfpUploadZone } from '@/components/projects/RfpUploadZone'
+import { RfpReviewDialog } from '@/components/projects/RfpReviewDialog'
 import { AllocateDialog } from '@/components/projects/AllocateDialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -35,6 +36,7 @@ export function ProjectDetail() {
   const [showRfpUpload, setShowRfpUpload] = useState(false)
   const [showAllocate, setShowAllocate] = useState(false)
   const [extracting, setExtracting] = useState(false)
+  const [showRfpReview, setShowRfpReview] = useState(false)
 
   const canManage = user?.role === 'admin' || user?.role === 'manager'
 
@@ -66,6 +68,7 @@ export function ProjectDetail() {
           if (mounted) {
             await update(res.data)
             setExtracting(false)
+            setShowRfpReview(true)
           }
           return
         }
@@ -101,6 +104,33 @@ export function ProjectDetail() {
       setShowRfpUpload(false)
     } finally {
       setUploading(false)
+    }
+  }
+
+  const handleRfpReviewSubmit = async (reviewed: Record<string, unknown>) => {
+    if (!id) return
+    try {
+      const updatePayload: Record<string, unknown> = {}
+      const fieldMap: Record<string, string> = {
+        title: 'name',
+        client_name: 'client_name',
+        domain: 'domain',
+        project_type: 'project_type',
+        team_size: 'team_size',
+        budget_range: 'budget',
+        tech_stack: 'tech_stack',
+      }
+
+      for (const [key, value] of Object.entries(reviewed)) {
+        if (fieldMap[key]) {
+          updatePayload[fieldMap[key]] = value
+        }
+      }
+
+      await update(updatePayload as any)
+    } catch (error) {
+      console.error('Failed to apply RFP data to project:', error)
+      throw error
     }
   }
 
@@ -188,7 +218,15 @@ export function ProjectDetail() {
 
               {rfp && (
                 <section>
-                  <h2 className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wide">AI-Extracted RFP Data</h2>
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">AI-Extracted RFP Data</h2>
+                    <button
+                      onClick={() => setShowRfpReview(true)}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      Edit
+                    </button>
+                  </div>
                   <RfpExtractedView data={rfp} />
                 </section>
               )}
@@ -369,6 +407,14 @@ export function ProjectDetail() {
           projectId={id}
           onSubmit={async (data) => { await createAlloc(data) }}
           onClose={() => setShowAllocate(false)}
+        />
+      )}
+
+      {showRfpReview && rfp && (
+        <RfpReviewDialog
+          data={rfp}
+          onSubmit={handleRfpReviewSubmit}
+          onClose={() => setShowRfpReview(false)}
         />
       )}
     </div>
