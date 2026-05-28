@@ -130,7 +130,7 @@ export function useAuth() {
     bootstrap()
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[onAuthStateChange] Event:', event)
+      console.log('[onAuthStateChange] Event:', event, 'Session:', session ? 'EXISTS' : 'NULL')
       if (event === 'SIGNED_IN' && session) {
         console.log('[onAuthStateChange] User signed in, resolving profile...')
         const profile = await resolveProfile()
