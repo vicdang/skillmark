@@ -69,6 +69,9 @@ def _parse_file(content: bytes, filename: str) -> str:
 
 
 def _call_ai(text: str) -> dict:
+    if not settings.anthropic_api_key:
+        raise ValueError("ANTHROPIC_API_KEY is not configured")
+
     client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
     message = client.messages.create(
         model="claude-sonnet-4-20250514",
