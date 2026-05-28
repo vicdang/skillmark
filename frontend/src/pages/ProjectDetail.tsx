@@ -34,6 +34,7 @@ export function ProjectDetail() {
   const [uploading, setUploading] = useState(false)
   const [showRfpUpload, setShowRfpUpload] = useState(false)
   const [showAllocate, setShowAllocate] = useState(false)
+  const [extracting, setExtracting] = useState(false)
 
   const canManage = user?.role === 'admin' || user?.role === 'manager'
 
@@ -43,6 +44,24 @@ export function ProjectDetail() {
       fetchAlloc()
     }
   }, [id])
+
+  useEffect(() => {
+    if (!id || !project?.rfp_file_url || project?.rfp_extracted_data) return
+    setExtracting(true)
+    const interval = setInterval(async () => {
+      try {
+        const res = await api.get(`/projects/${id}`)
+        if (res.data.rfp_extracted_data) {
+          await update(res.data)
+          setExtracting(false)
+          clearInterval(interval)
+        }
+      } catch {
+        // silently continue polling
+      }
+    }, 2000)
+    return () => clearInterval(interval)
+  }, [id, project?.rfp_file_url, project?.rfp_extracted_data])
 
   const handleUpload = async (file: File) => {
     if (!id) return
@@ -151,11 +170,28 @@ export function ProjectDetail() {
               )}
 
               {project.rfp_file_url && !rfp && (
-                <section className="rounded-lg border border-dashed border-border p-4 text-center">
-                  <p className="text-sm text-muted-foreground">RFP uploaded — AI extraction in progress...</p>
-                  <a href={project.rfp_file_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-sm text-primary hover:underline">
-                    <ExternalLink size={13} />View document
-                  </a>
+                <section className="rounded-lg border border-dashed border-border p-6 text-center">
+                  {extracting ? (
+                    <div className="space-y-3">
+                      <div className="flex justify-center">
+                        <div className="inline-flex h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">Extracting RFP data...</p>
+                        <p className="mt-1 text-xs text-muted-foreground">Claude AI is analyzing your document</p>
+                      </div>
+                      <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+                        <div className="h-full w-1/3 animate-pulse bg-primary" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-sm text-muted-foreground">RFP uploaded</p>
+                      <a href={project.rfp_file_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
+                        <ExternalLink size={13} />View document
+                      </a>
+                    </div>
+                  )}
                 </section>
               )}
             </div>
