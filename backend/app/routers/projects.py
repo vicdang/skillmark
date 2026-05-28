@@ -116,7 +116,6 @@ async def bulk_action(
 async def upload_rfp(
     project_id: uuid.UUID,
     file: UploadFile = File(...),
-    background_tasks: BackgroundTasks = BackgroundTasks(),
     current_user: UserOut = Depends(require_manager_or_above),
 ):
     if file.content_type not in ("application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"):
@@ -140,8 +139,12 @@ async def upload_rfp(
     db.table("projects").update({"rfp_file_url": public_url}).eq("id", str(project_id)).execute()
 
     from app.services.rfp_extractor import extract_rfp_background
-    logger.info(f"[RFP] Queuing background extraction task for project {project_id}, file: {file.filename}")
-    background_tasks.add_task(extract_rfp_background, str(project_id), content, file.filename or "", str(current_user.id))
-    logger.info(f"[RFP] Background task queued successfully")
+    logger.info(f"[RFP] Starting synchronous extraction for project {project_id}, file: {file.filename}")
+    try:
+        extract_rfp_background(str(project_id), content, file.filename or "", str(current_user.id))
+        logger.info(f"[RFP] Extraction completed synchronously")
+    except Exception as e:
+        logger.error(f"[RFP] Synchronous extraction failed: {e}", exc_info=True)
+        # Don't fail the upload if extraction fails - let user know via notification in the extraction function
 
     return {"status": "uploaded", "url": public_url}
