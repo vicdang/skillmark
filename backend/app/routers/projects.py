@@ -140,6 +140,8 @@ async def upload_rfp(
     db.table("projects").update({"rfp_file_url": public_url}).eq("id", str(project_id)).execute()
 
     from app.services.rfp_extractor import extract_rfp_background
+    logger.info(f"[RFP] Queuing background extraction task for project {project_id}, file: {file.filename}")
     background_tasks.add_task(extract_rfp_background, str(project_id), content, file.filename or "", str(current_user.id))
+    logger.info(f"[RFP] Background task queued successfully")
 
     return {"status": "uploaded", "url": public_url}
