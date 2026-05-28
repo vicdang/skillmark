@@ -2,11 +2,8 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.db.client import get_db
 from app.models.user import UserOut, Role
-from app.config import settings
 import uuid
 import logging
-import jwt
-from typing import Any
 
 logger = logging.getLogger(__name__)
 bearer = HTTPBearer()
@@ -18,39 +15,26 @@ async def get_current_user(
     token = credentials.credentials
     db = get_db()
     logger.info(f"[get_current_user] Token received (first 20 chars): {token[:20] if token else 'None'}...")
-
-    auth_user_id = None
     try:
-        # Decode JWT to extract user_id
-        decoded = jwt.decode(
-            token,
-            settings.supabase_jwt_secret,
-            algorithms=["HS256"],
-            options={"verify_signature": True}
-        )
-        auth_user_id = decoded.get("sub")
-        logger.info(f"[get_current_user] JWT decoded successfully, user_id: {auth_user_id}")
-    except jwt.InvalidTokenError as e:
-        logger.error(f"[get_current_user] JWT decode failed: {str(e)}")
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        response = db.auth.get_user(token)
+        auth_user = response.user
+        if not auth_user:
+            logger.warning("[get_current_user] Auth user not found from token")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     except Exception as e:
-        logger.error(f"[get_current_user] Unexpected error during JWT decode: {type(e).__name__}: {str(e)}")
+        logger.error(f"[get_current_user] Auth verification failed: {type(e).__name__}: {str(e)}")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
-    if not auth_user_id:
-        logger.warning("[get_current_user] No user_id found in JWT")
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-
-    logger.info(f"[get_current_user] Looking up user profile for auth_user: {auth_user_id}")
+    logger.info(f"[get_current_user] Looking up user profile for auth_user: {auth_user.id}")
     result = (
         db.table("users")
         .select("*")
-        .eq("supabase_auth_id", str(auth_user_id))
+        .eq("supabase_auth_id", str(auth_user.id))
         .single()
         .execute()
     )
     if not result.data:
-        logger.error(f"[get_current_user] User profile not found for auth_user: {auth_user_id}")
+        logger.error(f"[get_current_user] User profile not found for auth_user: {auth_user.id}")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User profile not found")
 
     logger.info(f"[get_current_user] User found: {result.data['email']}")
