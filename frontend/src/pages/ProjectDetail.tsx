@@ -53,7 +53,8 @@ export function ProjectDetail() {
       await api.post(`/projects/${id}/upload-rfp`, form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       })
-      await update({})
+      const res = await api.get(`/projects/${id}`)
+      await update(res.data as any)
       setShowRfpUpload(false)
     } finally {
       setUploading(false)
