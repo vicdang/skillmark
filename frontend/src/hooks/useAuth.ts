@@ -14,6 +14,7 @@ export function useAuth() {
   const { setNotifications, addNotification } = useNotificationStore()
   const realtimeRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
   const bootstrappedRef = useRef(false)
+  const profileResolvedRef = useRef(false)
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
@@ -98,6 +99,7 @@ export function useAuth() {
       // If user is already in store (from localStorage), use it
       if (user) {
         console.log('[bootstrap] User found in store:', user.email)
+        profileResolvedRef.current = true
         subscribeRealtime(user.id)
         // Defer notifications loading to avoid auth issues
         setTimeout(() => {
@@ -132,7 +134,14 @@ export function useAuth() {
     const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('[onAuthStateChange] Event:', event, 'Session:', session ? 'EXISTS' : 'NULL')
       if (event === 'SIGNED_IN' && session) {
+        // Skip if profile already resolved to avoid duplicate resolution loops
+        if (profileResolvedRef.current) {
+          console.log('[onAuthStateChange] Profile already resolved, skipping duplicate')
+          markBootstrapped()
+          return
+        }
         console.log('[onAuthStateChange] User signed in, resolving profile...')
+        profileResolvedRef.current = true
         const profile = await resolveProfile()
         if (profile) {
           console.log('[onAuthStateChange] Profile resolved:', profile.email)
@@ -146,6 +155,7 @@ export function useAuth() {
           console.error('[onAuthStateChange] Profile resolution failed, signing out')
           // Profile failed to load - could be deactivated or other error
           // Sign out and let login page handle the error
+          profileResolvedRef.current = false
           await supabase.auth.signOut()
         }
         markBootstrapped()
@@ -153,6 +163,7 @@ export function useAuth() {
 
       if (event === 'SIGNED_OUT') {
         console.log('[onAuthStateChange] User signed out')
+        profileResolvedRef.current = false
         setUser(null)
         setNotifications([])
         if (realtimeRef.current) {
