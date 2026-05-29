@@ -58,7 +58,7 @@ Current: Phase 1 complete — foundation, auth, layout, profile, projects, match
 Released as `v0.1.0`.
 Next: Phase 2 — Skill Matrix CRUD (employee self-service skill levels, gap analysis).
 
-## Recent Fixes & Improvements (v0.1.0)
+## Recent Fixes & Improvements (v0.1.0+)
 - **Auth bootstrap**: Fixed blank page after login by improving state management in `useAuth` hook and showing loading indicator in `AuthGuard`
 - **i18n locales**: Added en-US and vi-VN locale directories to support browser-detected locale codes
 - **Employee visibility**: Changed `/users` endpoint auth from `require_admin` to `require_employee_or_above` so employees can view the directory
@@ -66,8 +66,24 @@ Next: Phase 2 — Skill Matrix CRUD (employee self-service skill levels, gap ana
 - **AI explanations**: Added error handling and API key validation in matching engine
 - **Wishlist UI**: Fixed star button state tracking by ensuring frontend field names match backend response schema
 - **Team Management**: Added admin UI for granting/changing user roles (admin, manager, employee, guest, viewer)
+- **Employee Skill Summaries**: Added domain-filtered skill matrix summaries on Employees page (total skills, avg level, strongest domain)
+- **RFP Review Dialog**: Implemented AI extraction review/edit interface with auto-apply to project fields
+- **Auth State Loop Prevention**: Fixed duplicate profile resolution and continuous polling issues
+- **RFP Extraction Architecture**: Converted from unreliable background tasks to synchronous extraction for Render reliability
 
 ## Known Issues / Gotchas
 - PostgREST FK joins: `allocations` and `wish_list` both have two FKs to `users`. Always use explicit hints: `users!allocations_user_id_fkey` and `users!wish_list_user_id_fkey`.
 - Supabase Storage: the `rfp-files` bucket must be created manually in the Supabase dashboard before RFP uploads will work.
 - Axios interceptor: `supabase.auth.getSession()` can hang; it is wrapped in `Promise.race` with a 3-second timeout in `frontend/src/lib/api.ts`.
+- RFP Extraction: Must be synchronous (not async BackgroundTasks) due to Render process lifecycle — extraction runs during upload request (30-60s response).
+- ANTHROPIC_API_KEY: Required on Render for RFP extraction to work; if missing, extraction fails with validation error.
+
+## RFP Extraction Workflow
+1. User uploads PDF/DOCX to project
+2. File uploaded to Supabase Storage
+3. Backend extracts text and calls Claude API (synchronously during request)
+4. Extracted data saved to `projects.rfp_extracted_data` as JSONB
+5. Frontend polls every 5s and auto-shows review dialog when data appears
+6. User reviews/edits fields in dialog
+7. Clicking "Apply to Project" maps extracted fields to project schema and saves
+8. See `PROGRESS.md` for complete architecture details and testing checklist
